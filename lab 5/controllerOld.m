@@ -1,5 +1,7 @@
-classdef controller < handle
+classdef controllerOld < handle
     % instantiated from trajectoryFollower
+    % interfaces with old robotTrajectory, which had slightly different
+    % methods to access v and w (use controller from now on)
     properties
         traj
         tf
@@ -17,12 +19,14 @@ classdef controller < handle
         yErrArr
         thetaErrArr
         debug
+        plotData
         sim
         logLength = 1000;
         logIndex = 1;
     end
     methods
-        function obj = controller(traj, sleep, tdelay, feedback, debug, sim, tau)
+        function obj = controller(traj, sleep, tdelay, feedback, debug, ...
+                plotData, sim, tau)
             %  follows a reference trajectory for feed forward control,
             %  with proportional feedback
             obj.tf = traj.tf;
@@ -31,25 +35,30 @@ classdef controller < handle
             obj.sleep = sleep;
             obj.tdelay = tdelay;
             obj.debug = debug;
+            obj.plotData = plotData;
             obj.sim = sim;
             obj.tau = tau;
-            obj.xErrArr = zeros(obj.logLength, 1);
-            obj.yErrArr = zeros(obj.logLength, 1);
-            obj.thetaErrArr = zeros(obj.logLength, 1);
-            obj.yArr = zeros(obj.logLength, 1);
-            obj.tArr = zeros(obj.logLength, 1);
-            obj.vArr = zeros(obj.logLength, 1);
-            obj.wArr = zeros(obj.logLength, 1);
-            obj.thetaArr = zeros(obj.logLength, 1);
             obj.xArr = zeros(obj.logLength, 1);
+            obj.yArr = zeros(obj.logLength, 1);
+            if obj.plotData
+                obj.xErrArr = zeros(obj.logLength, 1);
+                obj.yErrArr = zeros(obj.logLength, 1);
+                obj.thetaErrArr = zeros(obj.logLength, 1);
+                obj.yArr = zeros(obj.logLength, 1);
+                obj.tArr = zeros(obj.logLength, 1);
+                obj.vArr = zeros(obj.logLength, 1);
+                obj.wArr = zeros(obj.logLength, 1);
+                obj.thetaArr = zeros(obj.logLength, 1);
+            end
         end
         
-        function execute(obj)
+        function execute(obj, initialized)
             erW = [];
             erR = [];
             f = figure;
             p = plot(obj.xArr, obj.yArr, 'b-');
-            axis([-1.5 1.5 -1.5 1.5])
+            axis([ min(obj.traj.xArr) - 0.2 max(obj.traj.xArr) + 0.2 ...
+                min(obj.traj.yArr) - 0.2 max(obj.traj.yArr) + 0.2]);
             hold on
             plot(obj.traj.xArr, obj.traj.yArr, 'r-');
             hold on
@@ -58,21 +67,26 @@ classdef controller < handle
             global robot;
             global robotPose;
             
-            name = 'ribit';
-            if (obj.sim)
-                name = 'sim';
+            if ~initialized
+                
+                name = 'ribit';
+                if (obj.sim)
+                    name = 'sim';
+                end
+                
+                if (obj.feedback)
+                    disp('Running with feedback')
+                else
+                    disp('Running without feedback')
+                end
+                
+                robotPose = [0; 0; 0; 0; 0];
+                robot = raspbot(name);
+                robot.stop();
+                pause(2)
+                
             end
             
-            if (obj.feedback)
-                disp('Running with feedback')
-            else
-                disp('Running without feedback')
-            end
-            
-            robotPose = [0; 0; 0; 0; 0];
-            robot = raspbot(name);
-            robot.stop();
-            pause(2)
             robot.encoders.NewMessageFcn=@encoderEventListener;
             
             % initialize feedback P controller coefficients
@@ -145,16 +159,20 @@ classdef controller < handle
                     
                     obj.xArr(obj.logIndex) = rx;
                     obj.yArr(obj.logIndex) = ry;
-                    set(p,'Xdata',obj.xArr)
-                    set(p,'Ydata',obj.yArr)
-                    obj.thetaArr(obj.logIndex) = rtheta;
-                    obj.tArr(obj.logIndex) = t;
-                    obj.vArr(obj.logIndex) = robotPose(4);
-                    obj.wArr(obj.logIndex) = robotPose(5);
+                    set(p,'Xdata',obj.xArr(1:obj.logIndex))
+                    set(p,'Ydata',obj.yArr(1:obj.logIndex))
+                    
+                    if (obj.plotData)
+                        obj.thetaArr(obj.logIndex) = rtheta;
+                        obj.tArr(obj.logIndex) = t;
+                        obj.vArr(obj.logIndex) = robotPose(4);
+                        obj.wArr(obj.logIndex) = robotPose(5);
+                        obj.xErrArr(obj.logIndex) = erVectorRobot(1);
+                        obj.yErrArr(obj.logIndex) = erVectorRobot(2);
+                        obj.thetaErrArr(obj.logIndex) = erTheta;
+                    end
+                    
                     obj.logIndex = obj.logIndex + 1;
-                    obj.xErrArr(obj.logIndex) = erVectorRobot(1);
-                    obj.yErrArr(obj.logIndex) = erVectorRobot(2);
-                    obj.thetaErrArr(obj.logIndex) = erTheta;
                 end
                 
                 [vl, vr] = robotModel.VwTovlvr(V, w);
@@ -178,36 +196,39 @@ classdef controller < handle
             robot.stop()
             robot.encoders.NewMessageFcn=[];
             
-            figure
-            plot(obj.tArr, obj.xArr)
-            hold on
-            plot(obj.tArr,obj.yArr)
-            hold on
-            plot(obj.tArr, obj.thetaArr)
-            hold on
-            plot(obj.traj.tArr, obj.traj.xArr)
-            hold on
-            plot(obj.traj.tArr, obj.traj.yArr)
-            hold on
-            plot(obj.traj.tArr, obj.traj.thetaArr)
-            hold on
-            legend({'xRob', 'yRob', 'thetaRob', 'xRef', 'yRef', 'thetaRef'});
-            
-            figure
-            plot(obj.tArr, obj.xErrArr)
-            hold on
-            plot(obj.tArr, obj.yErrArr)
-            hold on
-            plot(obj.tArr, obj.thetaErrArr)
-            hold on
-            legend({'xErr', 'yErr', 'thetaErr'});
-            
-            figure
-            plot(obj.tArr, obj.wArr, obj.traj.tArr, obj.traj.wArr)
-            
-            figure
-            plot(obj.tArr, obj.vArr, obj.traj.tArr, obj.traj.vArr)
-            
+            if (obj.plotData)
+                len = obj.logIndex - 1;
+                
+                figure
+                plot(obj.tArr(1:len), obj.xArr(1:len))
+                hold on
+                plot(obj.tArr(1:len),obj.yArr(1:len))
+                hold on
+                plot(obj.tArr(1:len), obj.thetaArr(1:len))
+                hold on
+                plot(obj.traj.tArr, obj.traj.xArr)
+                hold on
+                plot(obj.traj.tArr, obj.traj.yArr)
+                hold on
+                plot(obj.traj.tArr, obj.traj.thetaArr)
+                hold on
+                legend({'xRob', 'yRob', 'thetaRob', 'xRef', 'yRef', 'thetaRef'});
+                
+                figure
+                plot(obj.tArr(1:len), obj.xErrArr(1:len))
+                hold on
+                plot(obj.tArr(1:len), obj.yErrArr(1:len))
+                hold on
+                plot(obj.tArr(1:len), obj.thetaErrArr(1:len))
+                hold on
+                legend({'xErr', 'yErr', 'thetaErr'});
+                
+                figure
+                plot(obj.tArr(1:len), obj.wArr(1:len), obj.traj.tArr, obj.traj.wArr)
+                
+                figure
+                plot(obj.tArr(1:len), obj.vArr(1:len), obj.traj.tArr, obj.traj.vArr)
+            end
             
         end
     end

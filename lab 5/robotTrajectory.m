@@ -1,12 +1,10 @@
 classdef robotTrajectory < handle
     properties(Access = public)
-        tArr
+        timeArray
         sArr
-        xArr
-        yArr
-        vArr
-        wArr
-        thetaArr
+        poseArray
+        VArray
+        wArray
         tf
     end
     methods
@@ -17,20 +15,18 @@ classdef robotTrajectory < handle
             x = p0(1);
             y = p0(2);
             theta = p0(3);
-            tArr = zeros(numSamples+1, 1);
-            xArr = zeros(numSamples+1, 1);
-            yArr = zeros(numSamples+1, 1);
-            thetaArr = zeros(numSamples+1, 1);
-            vArr = zeros(numSamples+1, 1);
-            wArr = zeros(numSamples+1, 1);
+            timeArray = zeros(numSamples+1, 1);
+            poseArray = zeros(3, numSamples+1);
+            VArray = zeros(numSamples+1, 1);
+            wArray = zeros(numSamples+1, 1);
             sArr = zeros(numSamples+1, 1);
             
-            tArr(1) = 0;
-            xArr(1) = x;
-            yArr(1) = y;
-            thetaArr(1) = theta;
-            vArr(1) = 0;
-            wArr(1) = 0;
+            timeArray(1) = 0;
+            poseArray(1,1) = x;
+            poseArray(2,1) = y; 
+            poseArray(3,1) = theta;
+            VArray(1) = 0;
+            wArray(1) = 0;
             sArr(1) = s0;
             
             obj.tf = ref.getTrajectoryDuration(ref);
@@ -47,32 +43,34 @@ classdef robotTrajectory < handle
                 x = x + dx;
                 y = y + dy;
                 
-                tArr(n) = t;
-                xArr(n) = x;
-                yArr(n) = y;
-                thetaArr(n) = theta;
-                vArr(n) = V;
-                wArr(n) = w;
+                timeArray(n) = t;
+                poseArray(:,n) = [x; y; theta];
+                VArray(n) = V;
+                wArray(n) = w;
                 sArr(n) = sArr(n-1) + sqrt(dx^2 + dy^2);
             end
             
-            obj.tArr = tArr;
-            obj.xArr = xArr;
-            obj.yArr = yArr;
-            obj.thetaArr = thetaArr;
-            obj.vArr = vArr;
-            obj.wArr = wArr;
+            obj.timeArray = timeArray;
+            obj.poseArray = poseArray;
+            obj.VArray = VArray;
+            obj.wArray = wArray;
             obj.sArr = sArr;
         end
-        function vels = getVelsAtTime(obj, t)
-            V = interp1(obj.tArr, obj.vArr, t);
-            w = interp1(obj.tArr, obj.wArr, t);
-            vels = [V ; w];
+        function V = getVAtTime(obj, t)
+            V = interp1(obj.timeArray, obj.VArray, t);
         end
+        function w = getwAtTime(obj, t)
+            w = interp1(obj.timeArray, obj.wArray, t);
+        end
+        
+        function tf = getTrajectoryDuration(obj)
+            tf = obj.tf;
+        end
+        
         function pose = getPoseAtTime(obj, t)
-            x = interp1(obj.tArr, obj.xArr, t);
-            y = interp1(obj.tArr, obj.yArr, t);
-            th = interp1(obj.tArr, obj.thetaArr, t);
+            x = interp1(obj.timeArray, obj.poseArray(1,:), t);
+            y = interp1(obj.timeArray, obj.poseArray(2,:), t);
+            th = interp1(obj.timeArray, obj.poseArray(3,:), t);
             pose = [x ; y ; th];
         end
     end

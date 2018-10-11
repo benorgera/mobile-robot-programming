@@ -5,28 +5,26 @@ classdef trajectoryFollower < handle
     properties(Access = public)
         % time constant, lower tau => more feedback
         tau = 1
+        wMaxFeedback = 1;
         % encoder updates come ever 0.02
-        sleep = 0.01;
+        sleep = 0.02;
         tdelay = 0.33;
-        feedback = true;
+        feedback = false;
         controller
+        plotData = true;
         debug = false;
-        sim = false
+        sim = true;
     end
     
     methods(Access = public)
-        function obj = trajectoryFollower(trajectory, isCubic)
-            if isCubic
-                obj.controller = controller2(trajectory, obj.sleep, ...
-                    obj.tdelay, obj.feedback, obj.debug, obj.sim, obj.tau);
-            else
-                obj.controller = controller(trajectory, obj.sleep, obj.tdelay, ...
-                    obj.feedback, obj.debug, obj.sim, obj.tau);
-            end
+        function obj = trajectoryFollower(trajectory)
+            obj.controller = controller(trajectory, obj.sleep, ...
+                obj.tdelay, obj.feedback, obj.debug, obj.plotData, ...
+                obj.sim, obj.tau, obj.wMaxFeedback);
         end
         
-        function execute(obj)
-            obj.controller.execute();
+        function execute(obj, initialized)
+            obj.controller.execute(initialized);
         end
     end
 end
