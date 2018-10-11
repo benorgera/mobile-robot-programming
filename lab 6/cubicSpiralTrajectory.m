@@ -47,7 +47,7 @@ classdef cubicSpiralTrajectory < handle
             sMax = 1.0;   % length of curve
             qMax =  pi(); % max bearing
             qMin = -pi(); % min bearing
-            tMax =  obj.maxHeading; % max heading
+            tMax =  1.5*pi(); % max heading
             tMin = -1.5*pi(); % min heading
             
             numT = round(10*126/scale); % heading samples
@@ -84,7 +84,7 @@ classdef cubicSpiralTrajectory < handle
                 disp(a)
                 for b = -bMax:bMax/numB:bMax
                     
-                    curve = cubicSpiralTrajectory([a b 1.0],201, tMax);
+                    curve = cubicSpiralTrajectory([a b 1.0],201);
                     if isempty(curve.distArray)
                         continue
                     end

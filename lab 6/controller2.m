@@ -6,7 +6,7 @@ classdef controller2 < handle
     properties
         traj
         tf
-        tow
+        tau
         feedback
         sleep
         tdelay
@@ -25,7 +25,7 @@ classdef controller2 < handle
         logIndex = 1;
     end
     methods
-        function obj = controller2(traj, sleep, tdelay, feedback, debug, sim, tow)
+        function obj = controller2(traj, sleep, tdelay, feedback, debug, sim, tau)
             %  follows a reference trajectory for feed forward control,
             %  with proportional feedback
             obj.tf = traj.getTrajectoryDuration();
@@ -35,7 +35,7 @@ classdef controller2 < handle
             obj.tdelay = tdelay;
             obj.debug = debug;
             obj.sim = sim;
-            obj.tow = tow;
+            obj.tau = tau;
             obj.xErrArr = zeros(obj.logLength, 1);
             obj.yErrArr = zeros(obj.logLength, 1);
             obj.thetaErrArr = zeros(obj.logLength, 1);
@@ -48,8 +48,6 @@ classdef controller2 < handle
         end
         
         function execute(obj)
-            p = [];
-            f = [];
             erW = [];
             erR = [];
             f = figure;
@@ -83,7 +81,7 @@ classdef controller2 < handle
             robot.encoders.NewMessageFcn=@encoderEventListener;
             
             % initialize feedback P controller coefficients
-            kx = 1/obj.tow;
+            kx = 1/obj.tau;
             ktheta = kx;
             
             tic
@@ -113,7 +111,7 @@ classdef controller2 < handle
                 % this constant is dependent on vel
                 ky = 0.0;
                 if (refV ~= 0)
-                    ky = 2 / (abs(refV)*obj.tow*obj.tow);
+                    ky = 2 / (abs(refV)*obj.tau^2);
                 end
                 
                 % error vector in world frame

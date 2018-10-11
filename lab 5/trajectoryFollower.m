@@ -3,7 +3,9 @@ classdef trajectoryFollower < handle
     % traj = robotTrajectory(1000, 0, [0;0;0], ref);
     % fol = trajectoryFollower(traj);
     properties(Access = public)
-        tow = 1
+        % time constant, lower tau => more feedback
+        tau = 1
+        % encoder updates come ever 0.02
         sleep = 0.01;
         tdelay = 0.33;
         feedback = true;
@@ -15,10 +17,11 @@ classdef trajectoryFollower < handle
     methods(Access = public)
         function obj = trajectoryFollower(trajectory, isCubic)
             if isCubic
-                obj.controller = controller2(trajectory, obj.sleep, obj.tdelay, obj.feedback, obj.debug, obj.sim, obj.tow);
+                obj.controller = controller2(trajectory, obj.sleep, ...
+                    obj.tdelay, obj.feedback, obj.debug, obj.sim, obj.tau);
             else
                 obj.controller = controller(trajectory, obj.sleep, obj.tdelay, ...
-                    obj.feedback, obj.debug, obj.sim, obj.tow);
+                    obj.feedback, obj.debug, obj.sim, obj.tau);
             end
         end
         
