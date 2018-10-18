@@ -114,7 +114,6 @@ classdef controller < handle
                 if t < obj.tf
                     V = refV;
                     w = obj.traj.getwAtTime(max(0, min(t+obj.tdelay, obj.tf)));
-                    w = w * 10;
                 end
                 
                 % need actual pose to compute error
@@ -124,6 +123,8 @@ classdef controller < handle
                 ky = 0.0;
                 if (refV ~= 0)
                     ky = 2 / (abs(refV)*obj.tau^2);
+                    disp('ky')
+                    disp(ky)
                 end
                 
                 % error vector in world frame

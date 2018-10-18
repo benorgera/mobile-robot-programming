@@ -111,7 +111,7 @@ classdef controllerOld < handle
                 % last 1 second will just be feedback
                 if t < obj.tf
                     V = refV;
-                    w = refVels(2) * 10; % this is so damn weird
+                    w = refVels(2);
                 end
                 
                 % need actual pose to compute error

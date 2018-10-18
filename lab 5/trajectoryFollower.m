@@ -4,8 +4,8 @@ classdef trajectoryFollower < handle
     % fol = trajectoryFollower(traj);
     properties(Access = public)
         % time constant, lower tau => more feedback
-        tau = 1;
-        wMaxFeedback = 1.5;
+        tau = 0.8;
+        wMaxFeedback = 0.5;
         justFeedbackPeriod = 1.5;
         % encoder updates come ever 0.02
         sleep = 0.03;
@@ -14,7 +14,7 @@ classdef trajectoryFollower < handle
         feedback = true;
         controller
         plotData = true;
-        debug = false;
+        debug = true;
         sim = false;
     end
     

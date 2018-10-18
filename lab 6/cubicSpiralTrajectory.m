@@ -365,7 +365,7 @@ classdef cubicSpiralTrajectory < handle
                 obj.vlArray(i) = vl;
                 obj.vrArray(i) = vr;
                 obj.VArray(i) = (vr + vl)/2.0;
-                obj.wArray(i) = 10 * (vr - vl) / robotModel.W;
+                obj.wArray(i) = (vr - vl) / robotModel.W;
             end
             % Now compute the times that are implied by the velocities and
             % the distances.

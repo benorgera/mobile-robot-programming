@@ -1,6 +1,6 @@
 %% challenge task
 
-vel = 0.15;
+vel = 0.2;
 
 xf = 0.3048; yf = 0.3048; thf = 0.0;
 traj = cubicSpiralTrajectory.planTrajectory(xf,yf,thf,1);
