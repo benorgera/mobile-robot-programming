@@ -4,23 +4,25 @@ classdef trajectoryFollower < handle
     % fol = trajectoryFollower(traj);
     properties(Access = public)
         % time constant, lower tau => more feedback
-        tau = 1
-        wMaxFeedback = 1;
+        tau = 1;
+        wMaxFeedback = 1.5;
+        justFeedbackPeriod = 1.5;
         % encoder updates come ever 0.02
-        sleep = 0.02;
-        tdelay = 0.33;
-        feedback = false;
+        sleep = 0.03;
+        % less tdelay moves the robot trajectory right (more delayed)
+        tdelay = 0.15;
+        feedback = true;
         controller
         plotData = true;
         debug = false;
-        sim = true;
+        sim = false;
     end
     
     methods(Access = public)
         function obj = trajectoryFollower(trajectory)
             obj.controller = controller(trajectory, obj.sleep, ...
                 obj.tdelay, obj.feedback, obj.debug, obj.plotData, ...
-                obj.sim, obj.tau, obj.wMaxFeedback);
+                obj.sim, obj.tau, obj.wMaxFeedback, obj.justFeedbackPeriod);
         end
         
         function execute(obj, initialized)

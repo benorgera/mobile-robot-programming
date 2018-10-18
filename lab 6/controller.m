@@ -8,6 +8,7 @@ classdef controller < handle
         tf
         tau
         wMaxFeedback
+        justFeedbackPeriod
         feedback
         sleep
         tdelay
@@ -24,7 +25,7 @@ classdef controller < handle
     end
     methods
         function obj = controller(traj, sleep, tdelay, feedback, debug, ...
-                plotData, sim, tau, wMaxFeedback)
+                plotData, sim, tau, wMaxFeedback, justFeedbackPeriod)
             %  follows a reference trajectory for feed forward control,
             %  with proportional feedback
             obj.tf = traj.getTrajectoryDuration();
@@ -37,6 +38,7 @@ classdef controller < handle
             obj.sim = sim;
             obj.tau = tau;
             obj.wMaxFeedback = wMaxFeedback;
+            obj.justFeedbackPeriod = justFeedbackPeriod;
             
             if obj.plotData
                 obj.poseErrArr = zeros(3, obj.logLength);
@@ -54,10 +56,10 @@ classdef controller < handle
             erR = [];
             f = figure;
             p = plot(obj.poseArr(1,:), obj.poseArr(2,:), 'b-');
-            axis([ min(obj.traj.poseArray(1,:)) - 0.2 ...
-                max(obj.traj.poseArray(1,:)) + 0.2 ...
-                min(obj.traj.poseArray(2,:)) - 0.2 ...
-                max(obj.traj.poseArray(2,:)) + 0.2]);
+            axis([ min(obj.traj.poseArray(1,:)) - 0.1 ...
+                max(obj.traj.poseArray(1,:)) + 0.1 ...
+                min(obj.traj.poseArray(2,:)) - 0.1 ...
+                max(obj.traj.poseArray(2,:)) + 0.1]);
             hold on
             plot(obj.traj.poseArray(1,:), obj.traj.poseArray(2,:), 'r-');
             hold on
@@ -84,7 +86,7 @@ classdef controller < handle
                 robot.stop();
                 pause(2)
             else
-                robotPose = [0 ; 0; 0];
+                robotPose = [0 ; 0; 0; 0; 0];
             end
             
             % previous trajectory removes this so you need to add it back
@@ -97,7 +99,7 @@ classdef controller < handle
             tic
             while (true)
                 t = toc;
-                if t >= obj.tf + 2
+                if t >= obj.tf + obj.justFeedbackPeriod
                     break
                 end
                 
@@ -139,14 +141,18 @@ classdef controller < handle
                 
                 % compute feedback, accounting for angular error
                 uv = kx * erVectorRobot(1);
-                uw = ky * erVectorRobot(2) + erTheta * ktheta;
+                uw = ky * erVectorRobot(2);
+                
+                if (t < obj.tf) % can't correct angular error after ref
+                    uw = erTheta * ktheta;
+                end
                 
                 if (obj.feedback)
                     
                     disp('raw feedback')
                     disp([uv uw])
                     V = V + uv;
-                    w = w + min(uw, obj.wMaxFeedback);
+                    w = w + uw;
                 end
                 
                 if (obj.logIndex <= obj.logLength)
@@ -231,6 +237,16 @@ classdef controller < handle
                     obj.traj.VArray)
                 
             end
+            
+            erF = obj.traj.getPoseAtTime(obj.tf) - robotPose(1:3);
+            disp('terminal error x')
+            disp(erF(1));
+            disp('terminal error y')
+            disp(erF(2));
+            disp('terminal error theta')
+            disp(erF(3));
+            
+            
             
         end
     end

@@ -327,7 +327,7 @@ classdef cubicSpiralTrajectory < handle
             ylim([-2*r 2*r]);
         end
         
-        function planVelocities(obj,Vmax)
+        function planVelocities(obj,Vmax,rampUp, rampDown)
             % Plan the highest possible velocity for the path where no
             % wheel may exceed Vmax in absolute value.
             for i=1:obj.numSamples
@@ -338,9 +338,9 @@ classdef cubicSpiralTrajectory < handle
                 if(abs(sf) > 2.0*obj.rampLength) % no ramp for short trajectories
                     sUp = abs(s);
                     sDn = abs(sf-s);
-                    if(sUp < obj.rampLength) % ramp up
+                    if(rampUp && sUp < obj.rampLength) % ramp up
                         Vbase = Vbase * sUp/obj.rampLength;
-                    elseif(sDn < 0.05) % ramp down
+                    elseif(rampDown && sDn < 0.05) % ramp down
                         Vbase = Vbase * sDn/obj.rampLength;
                     end
                 end
