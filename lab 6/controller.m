@@ -123,8 +123,8 @@ classdef controller < handle
                 ky = 0.0;
                 if (refV ~= 0)
                     ky = 2 / (abs(refV)*obj.tau^2);
-                    disp('ky')
-                    disp(ky)
+%                     disp('ky')
+%                     disp(ky)
                 end
                 
                 % error vector in world frame
@@ -150,8 +150,8 @@ classdef controller < handle
                 
                 if (obj.feedback)
                     
-                    disp('raw feedback')
-                    disp([uv uw])
+%                     disp('raw feedback')
+%                     disp([uv uw])
                     V = V + uv;
                     w = w + uw;
                 end

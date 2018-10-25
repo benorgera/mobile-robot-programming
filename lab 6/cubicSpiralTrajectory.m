@@ -348,7 +348,7 @@ classdef cubicSpiralTrajectory < handle
                 %disp(Vbase);
                 V = Vbase*obj.sgn; % Drive forward or backward as desired.
                 K = obj.curvArray(i);
-                disp(K);
+%                 disp(K);
                 w = K*V;
                 vr = V + robotModel.W2*w;
                 vl = V - robotModel.W2*w;

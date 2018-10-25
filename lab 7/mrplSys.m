@@ -16,6 +16,6 @@ traj2.planVelocities(vel,false,true);
 
 trajString = trajectoryString([traj traj1 traj2]);
 
-fol = trajectoryFollower(trajString);
+fol = trajectoryFollower(trajString);     
 
 fol.execute(false); 
