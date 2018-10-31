@@ -6,7 +6,7 @@ classdef trajectoryFollower < handle
         % time constant, lower tau => more feedback
         tau = 0.8;
         wMaxFeedback = 0.5;
-        justFeedbackPeriod = 1.5;
+        justFeedbackPeriod = 0;%1.5
         % encoder updates come ever 0.02
         sleep = 0.03;
         % less tdelay moves the robot trajectory right (more delayed)
