@@ -13,8 +13,8 @@ classdef trajectoryFollower < handle
         tdelay = 0.15;
         feedback = true;
         controller
-        plotData = true;
-        debug = true;
+        plotData = false;
+        debug = false;
         sim = false;
     end
     

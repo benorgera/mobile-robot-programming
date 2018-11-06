@@ -1,19 +1,18 @@
 classdef MRPLsystem < handle
-    %MRPLSYSTEM Summary of this class goes here
-    %   Detailed explanation goes here
-    
-    properties(Constant)
-        flagToPalletFront = pose(-robotModel.palletFrontToFlag, 0, 0).bToA();
-    end
-    
+
     methods(Static)
         
-        function acqPoseVec = acquisitionPose(flagPoseSensorCoords)
+        function acqPoseVec = acquisitionPose(flagPoseSensorCoords, extraOffset)
+            
+            flagToPalletFront = pose(-robotModel.palletFrontToFlag ...
+                - extraOffset, 0, 0).bToA();
             
             % everything below is in robot coords
             flagPose = pose(flagPoseSensorCoords - [robotModel.frontOffset; 0; 0]);
-            palletPose = MRPLsystem.flagToPalletFront * [flagPose(1:2, 1); 1];
-            acqPoseVec = [palletPose(1:2, 1); flagPose(3)];
+            flagPoseVec = flagPose.getPoseVec();
+            palletPose = flagToPalletFront * ...
+                [flagPoseVec(1:2, 1); 1];
+            acqPoseVec = [palletPose(1:2, 1); flagPoseVec(3)];
         end
         
     end

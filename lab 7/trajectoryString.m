@@ -13,7 +13,6 @@ classdef trajectoryString < handle
             curPose = pose(0, 0, 0);
             
             for i = 1:length(trajectoryArr)
-                disp("here")
                 curPoseVec = curPose.getPoseVec();
                 disp(curPoseVec);
                 curTraj = trajectoryArr(i);

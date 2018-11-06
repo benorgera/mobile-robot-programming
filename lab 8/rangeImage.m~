@@ -38,6 +38,7 @@ classdef rangeImage < handle
                 n=0;
                 for j = 1:numImages
                     ranges = robot.laser.LatestMessage.Ranges;
+                    disp("what")
                     disp(length(ranges))
                     for i=1:length(ranges)
                         n = n + 1;
@@ -60,7 +61,6 @@ classdef rangeImage < handle
         function [centroidX, centroidY, th] = findLineCandidate(obj, debug)
             
             if debug
-                close all
                 figure
                 hold on
                 scatter(obj.xArray, obj.yArray);
@@ -100,8 +100,8 @@ classdef rangeImage < handle
                     lambda = eig(Inertia);
                     lambda = sqrt(lambda)*1000.0;
                     
-                    leftX = min(targetCloudX);
-                    rightX = max(targetCloudX);
+                    [leftX, leftInd] = min(targetCloudX);
+                    [rightX, rightInd] = max(targetCloudX);
                     topY = max(targetCloudY);
                     botY = min(targetCloudY);
                     diag = sqrt((rightX - leftX)^2 + (botY - topY)^2);
@@ -115,12 +115,7 @@ classdef rangeImage < handle
                             disp("with number of points")
                             disp(pointNum)
                             
-                            lx = leftX + centroidX;
-                            rx = rightX + centroidX;
-                            by = botY + centroidY;
-                            ty = topY + centroidY;
-                            
-                            plot([lx lx rx rx], [by ty by ty], 'bx') 
+                            plot(
                         end
                         
                         th = atan2(2*Ixy,Iyy-Ixx)/2.0;
@@ -144,6 +139,7 @@ classdef rangeImage < handle
                 centroidY = data(3);
                 th = data(4);
             end
+            
         end
         function num = numPixels(obj)
             num = obj.numPix;
