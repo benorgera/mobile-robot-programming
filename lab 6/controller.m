@@ -52,17 +52,19 @@ classdef controller < handle
         end
         
         function execute(obj, initialized)
-            erW = [];
-            erR = [];
-            f = figure;
-            p = plot(obj.poseArr(1,:), obj.poseArr(2,:), 'b-');
-            axis([ min(obj.traj.poseArray(1,:)) - 0.1 ...
-                max(obj.traj.poseArray(1,:)) + 0.1 ...
-                min(obj.traj.poseArray(2,:)) - 0.1 ...
-                max(obj.traj.poseArray(2,:)) + 0.1]);
-            hold on
-            plot(obj.traj.poseArray(1,:), obj.traj.poseArray(2,:), 'r-');
-            hold on
+            if obj.plotData
+                erW = [];
+                erR = [];
+                f = figure;
+                p = plot(obj.poseArr(1,:), obj.poseArr(2,:), 'b-');
+                axis([ min(obj.traj.poseArray(1,:)) - 0.1 ...
+                    max(obj.traj.poseArray(1,:)) + 0.1 ...
+                    min(obj.traj.poseArray(2,:)) - 0.1 ...
+                    max(obj.traj.poseArray(2,:)) + 0.1]);
+                hold on
+                plot(obj.traj.poseArray(1,:), obj.traj.poseArray(2,:), 'r-');
+                hold on
+            end
             
             % communicate with encoder callbacks
             global robot;
@@ -123,8 +125,8 @@ classdef controller < handle
                 ky = 0.0;
                 if (refV ~= 0)
                     ky = 2 / (abs(refV)*obj.tau^2);
-%                     disp('ky')
-%                     disp(ky)
+                    %                     disp('ky')
+                    %                     disp(ky)
                 end
                 
                 % error vector in world frame
@@ -150,8 +152,8 @@ classdef controller < handle
                 
                 if (obj.feedback)
                     
-%                     disp('raw feedback')
-%                     disp([uv uw])
+                    %                     disp('raw feedback')
+                    %                     disp([uv uw])
                     V = V + uv;
                     w = w + uw;
                 end
@@ -165,12 +167,14 @@ classdef controller < handle
                         erR = quiver(0, 0, erVectorRobot(1), erVectorRobot(2));
                     end
                     
-                    obj.poseArr(1, obj.logIndex) = rx;
-                    obj.poseArr(2, obj.logIndex) = ry;
-                    set(p,'Xdata',obj.poseArr(1, 1:obj.logIndex))
-                    set(p,'Ydata',obj.poseArr(2, 1:obj.logIndex))
-                    
                     if obj.plotData
+                        
+                        obj.poseArr(1, obj.logIndex) = rx;
+                        obj.poseArr(2, obj.logIndex) = ry;
+                        set(p,'Xdata',obj.poseArr(1, 1:obj.logIndex))
+                        set(p,'Ydata',obj.poseArr(2, 1:obj.logIndex))
+                        
+                        
                         obj.poseArr(3, obj.logIndex) = rtheta;
                         obj.tArr(obj.logIndex) = t;
                         obj.vArr(obj.logIndex) = robotPose(4);

@@ -1,20 +1,21 @@
 global robot
 
 robot = raspbot("raspbot9");
-robot.startLaser();
 robot.forksDown();
+robot.startLaser();
 pause(5)
 
 robFrontOffset = 0.06;
 objFaceOffset = 0.019;
 extraOffset=0.05; % how far off the pallet our trajectory should lead
 pushOffset = 0.01; % extra drive to scoop pallet
-thetaSoftening = 0.8; % don't make hard turns
+thetaSoftening = 0.85; % don't make hard turns
 vel = 0.2;
 pickupVel = 0.05;
 n = 0;
+runs = 3;
 
-while n<3 % acquired a pallet 3 times
+while n<runs % acquired a pallet 3 times
     
     tmpRangeImage = rangeImage(robot, 1, true);
     [x,y,th] = tmpRangeImage.findLineCandidate(true);
@@ -23,11 +24,12 @@ while n<3 % acquired a pallet 3 times
         continue
     end
     n = n + 1;
+    robot.stopLaser();
     
     pause(3);
-
+    
     acqPoseVec = MRPLsystem.acquisitionPose([x; y; thetaSoftening * th], ...
-        extraOffset);
+        extraOffset, true);
     
     xf = acqPoseVec(1);
     yf = acqPoseVec(2);
@@ -55,7 +57,13 @@ while n<3 % acquired a pallet 3 times
     
     folFrom.execute(true);
     
-    pause(15);  
+    if n < runs
+        robot.startLaser();
+        pause(10);
+    else
+        beep
+    end
 end
+robot.stopLaser();
 robot.shutdown();
 

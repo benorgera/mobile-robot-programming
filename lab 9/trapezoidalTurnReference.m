@@ -1,4 +1,4 @@
-classdef trapezoidalStepReferenceControl < handle
+classdef trapezoidalTurnReference < handle
     % ref = trapezoidalStepReferenceControl(0.25, 0.5, 1.5, 1, 0.25)
     % for a 1.5 meter trajectory
     properties
@@ -6,8 +6,9 @@ classdef trapezoidalStepReferenceControl < handle
         sgn
         tPause
         tf
+        tplateau
         amax
-        vmax
+        wmax
     end
     methods(Static)
         function dur = getTrajectoryDuration(obj)
@@ -15,46 +16,45 @@ classdef trapezoidalStepReferenceControl < handle
         end
     end
     methods
-        function obj = trapezoidalStepReferenceControl ...
-                (amax, vmax, dist, sgn, tPause)
-            obj.tramp = vmax / amax;
-            if obj.tramp * vmax > theta
-                vmax = dist / obj.tramp;
-                amax = vmax / obj.tramp;
+        function obj = trapezoidalTurnReference(amax, wmax, ...
+                theta, sgn, tPause)
+            obj.tramp = wmax / amax;
+            if obj.tramp * wmax > theta
+                wmax = theta / obj.tramp;
+                amax = wmax / obj.tramp;
             end
-            obj.tf = obj.tramp + dist / vmax;
-            obj.tramp = vmax / amax;
+            obj.tf = obj.tramp + theta / wmax;
             obj.sgn = sgn;
             obj.tPause = tPause;
             obj.amax = amax;
-            obj.vmax = vmax;
+            obj.wmax = wmax;
         end
         
-        function [uref, w] = computeControl(obj, timeNow)
+        function [v, w] = computeControl(obj, timeNow)
             % Construct a trapezoidal profile. It will not start until
             % tPause has elapsed and it will stay at zero for tPause
             % afterwards
             if timeNow < obj.tPause || timeNow > obj.tPause + obj.tf
-                uref = 0;
+                w = 0;
             else
                 t = timeNow - obj.tPause;
                 if t < 0
-                    uref = 0;
+                    w = 0;
                 elseif t < obj.tramp
-                    uref = obj.amax * t;
-                elseif (obj.tf - t) < obj.tramp
-                    uref = obj.amax*(obj.tf-t);
+                    w = obj.amax * t;
+                elseif (obj.tf - t) < obj.tramp % ramping down
+                    w = obj.amax*(obj.tf-t);
                 elseif (t> obj.tramp && t < (obj.tf-obj.tramp))
-                    uref = obj.vmax;
+                    w = obj.wmax;
                 else
-                    uref = 0;
+                    w = 0;
                 end
-                if uref<0
-                    uref = 0;
+                if w<0
+                    w = 0;
                 end
-                uref = obj.sgn*uref;
+                w = obj.sgn*w;
             end
-            w = 0.0;
+            v = 0.0;
         end
     end
 end

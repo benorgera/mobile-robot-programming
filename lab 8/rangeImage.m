@@ -1,16 +1,21 @@
 classdef rangeImage < handle
     properties(Constant)
         
-        thOffset = atan2(-0.024,0.28); %
-        sailWidth = 0.1; % m
+        thOffset = -2; % degrees
+        %atan2(-0.024,0.28); 
+        sailWidth = 0.127; % m
         
-        maxDist = 1.0;
+        maxDist = 1.2;
         minDist = 0.07;
         
+        % amount lambda increases by when you add nearest point to cloud
+        % (should jump by at least this much if its a sail, a wall won't
+        % jump b/c extra point is along same line)
+        lambdaJumpThreshold = 10;
         
-        pointThreshold = 7;
-        lambdaThreshold = 1.3;
-        widthThreshold = 0.012;
+        pointThreshold = 5;
+        lambdaThreshold = 1.3; % cloud crosstrack
+        widthThreshold = 0.035;
     end
     
     
@@ -21,7 +26,6 @@ classdef rangeImage < handle
         yArray = [];
         numPix=0;
         indices = [];
-        th = [];
     end
     methods
         
@@ -38,11 +42,10 @@ classdef rangeImage < handle
                 n=0;
                 for j = 1:numImages
                     ranges = robot.laser.LatestMessage.Ranges;
-                    disp(length(ranges))
                     for i=1:length(ranges)
                         n = n + 1;
                         obj.rArray(n) = ranges(i);
-                        obj.tArray(n) = deg2rad(i-6);%mod((i-6),360)*(pi/180);
+                        obj.tArray(n) = deg2rad(i+obj.thOffset);%mod((i-6),360)*(pi/180);
                         obj.xArray(n) = ranges(i)*cos(obj.tArray(n));
                         obj.yArray(n) = ranges(i)*sin(obj.tArray(n));
                     end
@@ -62,6 +65,7 @@ classdef rangeImage < handle
             if debug
                 close all
                 figure
+                axis([-1.2 1.2 -1.2 1.2]);
                 hold on
                 scatter(obj.xArray, obj.yArray);
             end
@@ -73,6 +77,7 @@ classdef rangeImage < handle
                 pointCloudY = [];
                 x = obj.xArray(i);
                 y = obj.yArray(i);
+                cloudIndices = [];
                 
                 for j = 1:length(obj.rArray)
                     
@@ -83,6 +88,7 @@ classdef rangeImage < handle
                         % find a included point, do sth
                         pointCloudX(end+1) = x2;
                         pointCloudY(end+1) = y2;
+                        cloudIndices(end+1) = j;
                     end
                     
                 end
@@ -108,25 +114,72 @@ classdef rangeImage < handle
                     
                     if abs(diag - obj.sailWidth) <= obj.widthThreshold
                         
-                        if debug
-                            disp(diag);
-                            disp("had centroid")
-                            disp([centroidX centroidY])
-                            disp("with number of points")
-                            disp(pointNum)
-                            
-                            lx = leftX + centroidX;
-                            rx = rightX + centroidX;
-                            by = botY + centroidY;
-                            ty = topY + centroidY;
-                            
-                            plot([lx lx rx rx], [by ty by ty], 'bx') 
+                        closest = ~1;
+                        closestInd = ~1;
+                        
+                        for j = 1:length(obj.rArray)
+                            if ~ismember(cloudIndices, j)
+                                xC2 = obj.xArray(j);
+                                yC2 = obj.yArray(j);
+                                dist = ((centroidX-xC2)^2 + ...
+                                    (centroidY-yC2)^2)^0.5;
+                                if closest == ~1 || dist < closest
+                                    closest = dist;
+                                    closestInd = j;
+                                end
+                            end
                         end
                         
-                        th = atan2(2*Ixy,Iyy-Ixx)/2.0;
+                        pointCloudX(end+1) = obj.xArray(closestInd);
+                        pointCloudY(end+1) = obj.yArray(closestInd);
+                        centroidX1 = mean(pointCloudX);
+                        centroidY1 = mean(pointCloudY);
+                        targetCloudX1 = pointCloudX - centroidX1;
+                        targetCloudY1 = pointCloudY - centroidY1;
+                        Ixx1 = sum(targetCloudX1.^2);
+                        Iyy1 = sum(targetCloudY1.^2);
+                        Ixy1 = sum(-(targetCloudX1.*targetCloudY1));
+                        Inertia1 = [Ixx1 Ixy1;Ixy1 Iyy1] / (pointNum + 1);
+                        lambda1 = eig(Inertia1);
+                        lambda1 = sqrt(lambda1)*1000.0;
                         
-                        candidates = [candidates ...
-                            [lambda(1); centroidX; centroidY; th]];
+                        maxLambdaJump = abs(lambda(1) - lambda1(1));
+                        numSailWidths = closest / obj.sailWidth - 0.5;
+                        
+                        if numSailWidths > 0.45 || ...
+                                maxLambdaJump > obj.lambdaJumpThreshold
+                            
+                            
+                            disp("lambda jump")
+                            disp(maxLambdaJump)
+                            disp("numSailWidths")
+                            disp(numSailWidths)
+                            
+                            
+                            if debug
+%                                 disp(diag);
+%                                 disp("had centroid")
+%                                 disp([centroidX centroidY])
+%                                 disp("with number of points")
+%                                 disp(pointNum)
+                                
+                                lx = leftX + centroidX;
+                                rx = rightX + centroidX;
+                                by = botY + centroidY;
+                                ty = topY + centroidY;
+                                
+                                plot([lx lx rx rx], [by ty by ty], 'bx')
+                            end
+                            
+                            th = atan2(2*Ixy,Iyy-Ixx)/2.0;
+                            
+                            candidates = [candidates ...
+                                [lambda(1); centroidX; centroidY; th; pointNum]];
+                        elseif debug
+                            disp("nearest point didn't cause lambda jump")
+                        end
+                    elseif debug
+                        %                         disp("diagonal was off")
                     end
                 end
                 
@@ -137,12 +190,17 @@ classdef rangeImage < handle
                 centroidY = 0;
                 th = 0;
             else
-                [~, ind] = min(candidates(1,:));
+                [~, ind] = min(candidates(1,:)); % min lambda 1
                 
                 data = candidates(:, ind);
                 centroidX = data(2);
                 centroidY = data(3);
                 th = data(4);
+                
+                disp("lambda was")
+                disp(data(1))
+                disp("num points")
+                disp(data(5))
             end
         end
         function num = numPixels(obj)
@@ -154,10 +212,9 @@ classdef rangeImage < handle
             obj.rArray = obj.rArray(goodOnes);
             obj.xArray = obj.xArray(goodOnes);
             obj.yArray = obj.yArray(goodOnes);
+            obj.tArray = obj.tArray(goodOnes);
             obj.indices = linspace(2,obj.numPix,obj.numPix);
             obj.indices = obj.indices(goodOnes);
-            % Compute the angles of surviving points
-            obj.th = deg2rad(obj.indices-1) - obj.thOffset;
         end
     end
     
@@ -170,10 +227,7 @@ classdef rangeImage < handle
             th = th-obj.thOffset;
             x =  r*cos(th);
             y =  r*sin(th);
-            
-            
         end
-        
         
     end
 end

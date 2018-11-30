@@ -9,9 +9,11 @@ classdef robotModel < handle
     properties(Constant)
         W  = 0.09;   % wheel tread in m
         W2 = 0.045; % 1/2 wheel tread in m
-        maxWheelVelocity = 0.3 % max of either wheel in m/sec
+        maxWheelVelocity = 0.5 % max of either wheel in m/sec
+        maxOmega = 11.11111; % max angular vel
         
-        palletFrontToFlag = 0.015875;
+        palletFrontToSail = 0.015875;
+% palletFrontToSail = 0;
         
         rad = .165;             % robot body radius id 12.75/2 inches
         frontOffset = 0.07; % front surface is 6 in fwd of axle center
