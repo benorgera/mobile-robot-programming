@@ -15,7 +15,7 @@ classdef robotModel < handle
         palletFrontToSail = 0.015875;
 % palletFrontToSail = 0;
         
-        rad = .165;             % robot body radius id 12.75/2 inches
+        rad = 0.06;             % robot body radius id 12.75/2 inches
         frontOffset = 0.07; % front surface is 6 in fwd of axle center
         objOffset = 1.5*0.0254; % half of object width
 		laser_l = -0.100;       % laser offset
