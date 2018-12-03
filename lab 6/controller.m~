@@ -22,7 +22,6 @@ classdef controller < handle
         sim
         logLength = 1000;
         logIndex = 1;
-        maxNgFeedback = 0.3;
     end
     methods
         function obj = controller(traj, sleep, tdelay, feedback, debug, ...
@@ -116,10 +115,9 @@ classdef controller < handle
                     break
                 end
                 
-                curPose = robotPose;
-                rx = curPose(1);
-                ry = curPose(2);
-                rtheta = curPose(3);
+                rx = robotPose(1);
+                ry = robotPose(2);
+                rtheta = robotPose(3);
                 
                 V = 0.0;
                 w = 0.0;
@@ -144,12 +142,11 @@ classdef controller < handle
                 % error vector in world frame
                 er = refPose - [rx; ry; rtheta];
                 erTheta = atan2(sin(er(3)), cos(er(3)));
-                
                 s = sin(rtheta);
                 c = cos(rtheta);
                 rthetaNorm = atan2(s, c);
                 
-                erVectorRobot = [0 ; 0];
+                erVectorRobot = [ 0 ; 0];
                 if (rtheta ~= 0 && rthetaNorm ~= 0)
                     erVectorRobot = [c -s; s c] \ [er(1) ; er(2)];
                     % rotate to robot coords (A\b is same as A^-1 b)
@@ -157,14 +154,10 @@ classdef controller < handle
                 
                 % compute feedback, accounting for angular error
                 uv = kx * erVectorRobot(1);
-                uw = erTheta * ktheta;
+                uw = ky * erVectorRobot(2);
                 
-                if (t < obj.tf) % can't correct crosstrack error after ref
-                    uw = uw + ky * erVectorRobot(2);
-                end
-                
-                if abs(uw) > obj.maxNgFeedback
-                    uw = obj.maxNgFeedback * sign(uw);
+                if (t < obj.tf) % can't correct angular error after ref
+                    uw = erTheta * ktheta;
                 end
                 
                 if (obj.feedback)
@@ -205,13 +198,12 @@ classdef controller < handle
                 if mapPlot
                     figure(mapFig)
                     
-                    modelPts = map.lastModelPts;
-                    curPose = robotPose(1:3);
+                    modelPts = map.lastModelPts
                     
                     hold off
-                    plot(map.lines_p1, map.lines_p2)
+                    plot(lines_p1, lines_p2)
                     hold on
-                    transform = pose(curPose).bToA();
+                    transform = pose(newPose).bToA();
                     worldPts = transform*modelPts;
                     scatter(worldPts(1, :), worldPts(2, :), 'bx')
                     
@@ -284,6 +276,9 @@ classdef controller < handle
             disp(erF(2));
             disp('terminal error theta')
             disp(erF(3));
+            
+            
+            
         end
     end
 end

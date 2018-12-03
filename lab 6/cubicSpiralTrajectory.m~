@@ -162,21 +162,22 @@ classdef cubicSpiralTrajectory < handle
             xlabel('Heading'); ylabel('Bearing'); title('b2Tab');
         end
         
-        function curve = planTrajectory(x,y,th,sgn,worldCoords)
+        function curve = planTrajectory(x,y,th,sgn,p0)
             
-            if (nargin == 5 && worldCoords)
+            if (nargin == 5)
                 global robotPose
-                p0 = robotPose(1:3);
-
                 % reference change in pose in world coords
-                deltaPWorld = [x - p0(1); y - p0(2)];
-
-                deltaPRob = pose(p0).aToBRot() * deltaPWorld;
+                deltaPWorldHom = [x - robotPose(1); y - robotPose(2); 1];
+                deltaPRob = pose(robotPose(1:3)).bToA() * deltaPWorldHom;
                 x = deltaPRob(1);
                 y = deltaPRob(2);
-                th = atan2(sin(th - p0(3)), cos(th - p0(3)));
-            else
-                p0 = [0;0;0];
+                th = atan2(sin(th - robotPose(3)), cos(th - robotPose(3)));
+                disp("x")
+                disp(x)
+                disp("y")
+                disp(y)
+                disp("th")
+                disp(th)
             end
             
             persistent inited;
@@ -229,8 +230,7 @@ classdef cubicSpiralTrajectory < handle
             
             % Plot the corresponding unit
             su = 1.0;
-            
-            clothu = cubicSpiralTrajectory([au bu su],201,p0);
+            clothu = cubicSpiralTrajectory([au bu su],201);
             
             %hold on;
             
@@ -249,8 +249,12 @@ classdef cubicSpiralTrajectory < handle
                 as = -as;
                 ss = -ss;
             end
-
-            curve = cubicSpiralTrajectory([as bs ss],201,p0);
+            
+            if nargin == 5
+                curve = cubicSpiralTrajectory([as bs ss],201,p0);
+            else
+                curve = cubicSpiralTrajectory([as bs ss],201);
+            end
         end
         
     end
@@ -269,7 +273,7 @@ classdef cubicSpiralTrajectory < handle
             
             % Place robot in initial state
             obj.distArray(1) = 0.0;
-            obj.poseArray(1:3,1) = [0;0;0];
+            obj.poseArray(1:3,1) = obj.p0;
             obj.curvArray(1) = 0.0;
             
             a = obj.parms(1);
@@ -326,17 +330,16 @@ classdef cubicSpiralTrajectory < handle
             % curve. The curve is integrated immediately when this
             % this constructor is called. Thereafter the public arrays
             % distArray, poseArray, and curvArray are populated.
-            
-            if nargin == 3
-                obj.p0 = p0;
-                obj.worldCoords = true;
-            end
-            
             if(nargin >= 2)
                 obj.numSamples = numSamples;
                 obj.parms = parms;
                 obj.integrateCommands();
                 obj.sgn = sign(parms(3)); % Critical for proper time series
+            end
+            
+            if nargin == 3
+                obj.p0 = p0;
+                obj.worldCoords = true;
             end
         end
         
@@ -468,28 +471,19 @@ classdef cubicSpiralTrajectory < handle
             th = interp1(obj.distArray,obj.poseArray(3,:),s,'pchip','extrap');
             poseRob  = [x ; y ; th];
             
-             if obj.worldCoords
+            if obj.worldCoords
                 poseRobHom = [x; y; 1];
                 deltaPoseWorld = pose(obj.p0).bToA() * poseRobHom;
                 thWorld = atan2(sin(th + obj.p0(3)), cos(th + obj.p0(3)));
-                poseOut = [deltaPoseWorld(1); deltaPoseWorld(2); thWorld];
+                poseOut = [obj.p0(1) + deltaPoseWorld(1); ...
+                    obj.p0(2) + deltaPoseWorld(2); thWorld];
             else
                 poseOut = poseRob;
             end
         end
         
-        function poseOut  = getFinalPose(obj)
-            poseRob  = obj.poseArray(:,obj.numSamples);
-            
-             if obj.worldCoords
-                th = poseRob(3);
-                poseRobHom = [poseRob(1); poseRob(2); 1];
-                deltaPoseWorld = pose(obj.p0).bToA() * poseRobHom;
-                thWorld = atan2(sin(th + obj.p0(3)), cos(th + obj.p0(3)));
-                poseOut = [deltaPoseWorld(1); deltaPoseWorld(2); thWorld];
-            else
-                poseOut = poseRob;
-            end
+        function pose  = getFinalPose(obj)
+            pose  = obj.poseArray(:,obj.numSamples);
         end
         
         function time  = getTrajectoryDuration(obj)
@@ -516,20 +510,20 @@ classdef cubicSpiralTrajectory < handle
             end
         end
         
-        function poseOut  = getPoseAtTime(obj,t)
+        function poseRob  = getPoseAtTime(obj,t)
             x = interp1(obj.timeArray,obj.poseArray(1,:),t,'pchip','extrap');
             y = interp1(obj.timeArray,obj.poseArray(2,:),t,'pchip','extrap');
             th = interp1(obj.timeArray,obj.poseArray(3,:),t,'pchip','extrap');
             poseRob  = [x ; y ; th];
             
-            if obj.worldCoords
-                poseRobHom = [x; y; 1];
-                deltaPoseWorld = pose(obj.p0).bToA() * poseRobHom;
-                thWorld = atan2(sin(th + obj.p0(3)), cos(th + obj.p0(3)));
-                poseOut = [deltaPoseWorld(1); deltaPoseWorld(2); thWorld];
-            else
-                poseOut = poseRob;
-            end
+%             if obj.worldCoords
+%                 poseRobHom = [x; y; 1];
+%                 deltaPoseWorld = pose(obj.p0).bToA() * poseRobHom;
+%                 thWorld = atan2(sin(th + obj.p0(3)), cos(th + obj.p0(3)));
+%                 poseOut = [deltaPoseWorld(1); deltaPoseWorld(2); thWorld];
+%             else
+%                 poseOut = poseRob;
+%             end
         end
         
         function parms  = getParms(obj)

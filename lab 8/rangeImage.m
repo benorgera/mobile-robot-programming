@@ -61,7 +61,9 @@ classdef rangeImage < handle
     
     methods(Access = public)
         function [centroidX, centroidY, th] = findLineCandidate(obj, debug)
-            
+        % find potential sail in range image, ruling out walls because they
+        % have a nearest point that is too close, or a nearest point which
+        % doesn't change the crosstrack eigenvalue of the point cloud
             if debug
                 close all
                 figure

@@ -47,9 +47,11 @@ if (dt ~= 0.0)
     temp = rtheta + delTheta / 2.0;
     dx = v * cos(temp) * dt;
     dy = v * sin(temp) * dt;
+    
+    rawTh = rtheta + delTheta;
     robotPose(1) = rx + dx;
     robotPose(2) = ry + dy;
-    robotPose(3) = rtheta + delTheta;
+    robotPose(3) = atan2(sin(rawTh), cos(rawTh));
     robotPose(4) = v;
     robotPose(5) = w;
     

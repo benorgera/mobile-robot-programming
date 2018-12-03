@@ -19,6 +19,7 @@ classdef lineMapLocalizer < handle
         gradThresh = 0.0005;
         debug;
         bodyPts;
+        lastModelPts; % used for plotting
     end
     methods(Access = public)
         
@@ -111,6 +112,8 @@ classdef lineMapLocalizer < handle
             modelPts(:, ids) = [];
             dim = size(modelPts);
             
+            obj.lastModelPts = modelPts;
+            
             if dim(2) < lineMapLocalizer.minPts
                 success = false;
                 outPose = inPose;
@@ -144,18 +147,18 @@ classdef lineMapLocalizer < handle
                 i = i + 1;
             end
             
-            if obj.debug
-                hold off
-                plot(obj.lines_p1, obj.lines_p2)
-                hold on
-                transform = curPose.bToA();
-                worldPts = transform*modelPts;
-                scatter(worldPts(1, :), worldPts(2, :), 'bx')
-                
-                worldBodyPts = transform*obj.bodyPts;
-                plot(worldBodyPts(1,:),worldBodyPts(2,:),'k');
-            end
-            
+%             if obj.debug
+%                 hold off
+%                 plot(obj.lines_p1, obj.lines_p2)
+%                 hold on
+%                 transform = curPose.bToA();
+%                 worldPts = transform*modelPts;
+%                 scatter(worldPts(1, :), worldPts(2, :), 'bx')
+%                 
+%                 worldBodyPts = transform*obj.bodyPts;
+%                 plot(worldBodyPts(1,:),worldBodyPts(2,:),'k');
+%             end
+%             
             
             success = true;
             outPose = curPose;
