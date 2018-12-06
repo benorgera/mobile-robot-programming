@@ -12,11 +12,11 @@ classdef robotModel < handle
         maxWheelVelocity = 0.5 % max of either wheel in m/sec
         maxOmega = 11.11111; % max angular vel
         
-        palletFrontToSail = 0.015875;
+        palletFrontToSail = 0.02;
 % palletFrontToSail = 0;
         
         rad = 0.06;             % robot body radius id 12.75/2 inches
-        frontOffset = 0.07; % front surface is 6 in fwd of axle center
+        frontOffset = 0.06; % front surface is 6 in fwd of axle center
         objOffset = 1.5*0.0254; % half of object width
 		laser_l = -0.100;       % laser offset
 		laser_rad = 0.04;       % laser housing radius

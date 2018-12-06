@@ -5,9 +5,10 @@ global mapUpdatePercentage
 
 robot = raspbot();
 robot.startLaser();
-pause(5)
+robot.forksDown();
+pause(1)
 
-p0 = pose(24*0.0254, 24*0.0254, pi/2.0); % initial pose estimate on field
+p0 = pose(12*0.0254, 36*0.0254, -pi/4.0); % initial pose estimate on field
 robotPose = [0; 0; 0; 0; 0];
 robotPose(1:3) = p0.getPoseVec();
 
@@ -36,28 +37,7 @@ robot.laser.NewMessageFcn=@laserEventListener;
 % wait for map localization to work
 pause(5)
 
-vel = 0.17;
-
-plotDriving = false;
-
-%xf = 0.3048; yf = 0.9144; thf = pi/2.0;
-xf = 0.3048; yf = 0.87; thf = pi/2.0;
-traj = cubicSpiralTrajectory.planTrajectory(xf,yf,thf,1,true);
-traj.planVelocities(vel,true,true);
-fol = trajectoryFollower(traj, true, 5, plotDriving);
-fol.execute(true, true);
- 
-xf = 0.9144; yf = 0.3048; thf = 0.0;
-traj = cubicSpiralTrajectory.planTrajectory(xf,yf,thf,1,true);
-traj.planVelocities(vel,true,true);
-fol = trajectoryFollower(traj, true, 5, plotDriving);
-fol.execute(true, true);
-
-xf = 0.6096; yf = 0.6069; thf = pi/2.0;
-traj = cubicSpiralTrajectory.planTrajectory(xf,yf,thf,1,true);
-traj.planVelocities(vel,true,true);
-fol = trajectoryFollower(traj, true, 6, plotDriving);
-fol.execute(true, true);
+pickDropObject(robot, 0.15);
 
 robot.encoders.NewMessageFcn=[];
 robot.laser.NewMessageFcn=[];

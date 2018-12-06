@@ -13,7 +13,7 @@ classdef cubicSpiralTrajectory < handle
         sgn=0.0;
         p0 = [0;0;0];
         maxHeading = 1.5*pi();
-        rampLength = 0.05;
+        rampLength = 0.1;
     end
     
     properties(Access = public)
@@ -167,10 +167,10 @@ classdef cubicSpiralTrajectory < handle
             if (nargin == 5 && worldCoords)
                 global robotPose
                 p0 = robotPose(1:3);
-
+                
                 % reference change in pose in world coords
                 deltaPWorld = [x - p0(1); y - p0(2)];
-
+                
                 deltaPRob = pose(p0).aToBRot() * deltaPWorld;
                 x = deltaPRob(1);
                 y = deltaPRob(2);
@@ -249,7 +249,7 @@ classdef cubicSpiralTrajectory < handle
                 as = -as;
                 ss = -ss;
             end
-
+            
             curve = cubicSpiralTrajectory([as bs ss],201,p0);
         end
         
@@ -306,7 +306,7 @@ classdef cubicSpiralTrajectory < handle
             % Place robot in initial state
             obj.timeArray(1) = 0.0;
             
-            for i=1:obj.numSamples-1
+            for i=1:obj.numSamples-2
                 ds = obj.distArray(i+1) - obj.distArray(i);
                 V = obj.VArray(i);
                 % Avoid division by zero
@@ -314,6 +314,9 @@ classdef cubicSpiralTrajectory < handle
                 
                 obj.timeArray(i+1)= obj.timeArray(i)+ds/V;
             end
+            obj.timeArray(obj.numSamples) = ...
+                obj.timeArray(obj.numSamples - 1)+...
+                ds/obj.VArray(obj.numSamples - 1);
         end
     end
     
@@ -351,10 +354,14 @@ classdef cubicSpiralTrajectory < handle
             ylim([-2*r 2*r]);
         end
         
-        function planVelocities(obj,Vmax,rampUp, rampDown)
+        function planVelocities(obj,Vmax,rampUp, rampDown, rampDownLength)
             % Plan the highest possible velocity for the path where no
             % wheel may exceed Vmax in absolute value.
-            for i=1:obj.numSamples
+            if nargin <= 4
+                rampDownLength = obj.rampLength;
+            end  
+              
+            for i=1:(obj.numSamples - 1)
                 Vbase = Vmax;
                 % Add velocity ramps for first and last 5 cm
                 s = obj.distArray(i);
@@ -364,7 +371,7 @@ classdef cubicSpiralTrajectory < handle
                     sDn = abs(sf-s);
                     if(rampUp && sUp < obj.rampLength) % ramp up
                         Vbase = Vbase * sUp/obj.rampLength;
-                    elseif(rampDown && sDn < 0.05) % ramp down
+                    elseif(rampDown && sDn < rampDownLength) % ramp down
                         Vbase = Vbase * sDn/obj.rampLength;
                     end
                 end
@@ -386,11 +393,18 @@ classdef cubicSpiralTrajectory < handle
                     vr = vr * vlNew/vl;
                     vl = vlNew;
                 end
+                
                 obj.vlArray(i) = vl;
                 obj.vrArray(i) = vr;
                 obj.VArray(i) = (vr + vl)/2.0;
                 obj.wArray(i) = (vr - vl) / robotModel.W;
             end
+            
+            obj.vlArray(obj.numSamples) = 0;
+            obj.vrArray(obj.numSamples) = 0;
+            obj.VArray(obj.numSamples) = 0;
+            obj.wArray(obj.numSamples) = 0;
+            
             % Now compute the times that are implied by the velocities and
             % the distances.
             obj.computeTimeSeries();
@@ -468,7 +482,7 @@ classdef cubicSpiralTrajectory < handle
             th = interp1(obj.distArray,obj.poseArray(3,:),s,'pchip','extrap');
             poseRob  = [x ; y ; th];
             
-             if obj.worldCoords
+            if obj.worldCoords
                 poseRobHom = [x; y; 1];
                 deltaPoseWorld = pose(obj.p0).bToA() * poseRobHom;
                 thWorld = atan2(sin(th + obj.p0(3)), cos(th + obj.p0(3)));
@@ -481,7 +495,7 @@ classdef cubicSpiralTrajectory < handle
         function poseOut  = getFinalPose(obj)
             poseRob  = obj.poseArray(:,obj.numSamples);
             
-             if obj.worldCoords
+            if obj.worldCoords
                 th = poseRob(3);
                 poseRobHom = [poseRob(1); poseRob(2); 1];
                 deltaPoseWorld = pose(obj.p0).bToA() * poseRobHom;

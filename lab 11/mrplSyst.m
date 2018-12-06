@@ -26,7 +26,7 @@ gradThresh = 0.0005;
 
 % percentage of change in pose suggested by map to be applied to
 % deadreackoning pose estimate
-mapUpdatePercentage = 0.2;
+mapUpdatePercentage = 0.15;
 map = lineMapLocalizer(lines_p1,lines_p2,gain,errThresh,gradThresh, true);
 
 % begin tracking position
@@ -38,27 +38,26 @@ pause(5)
 
 vel = 0.15;
 
-xf = 0.3048; yf = 0.9144; thf = pi/2.0;
-traj = cubicSpiralTrajectory.planTrajectory(xf,yf,thf,1,p0.getPoseVec());
+plotDriving = true;
+
+%xf = 0.3048; yf = 0.9144; thf = pi/2.0;
+xf = 0.3048; yf = 0.85; thf = pi/2.0;
+traj = cubicSpiralTrajectory.planTrajectory(xf,yf,thf,1,true);
 traj.planVelocities(vel,true,true);
-fol = trajectoryFollower(traj);
+fol = trajectoryFollower(traj, true, 5, plotDriving);
 fol.execute(true, true);
-
-robot.encoders.NewMessageFcn=[];
-robot.laser.NewMessageFcn=[];
-
-pause(3);
-
+ 
 xf = 0.9144; yf = 0.3048; thf = 0.0;
-traj = cubicSpiralTrajectory.planTrajectory(xf,yf,thf,1,p0.getPoseVec());
+traj = cubicSpiralTrajectory.planTrajectory(xf,yf,thf,1,true);
 traj.planVelocities(vel,true,true);
-fol = trajectoryFollower(traj);
+fol = trajectoryFollower(traj, true, 5, plotDriving);
 fol.execute(true, true);
-
-pause(3);
 
 xf = 0.6096; yf = 0.6069; thf = pi/2.0;
 traj = cubicSpiralTrajectory.planTrajectory(xf,yf,thf,1,true);
 traj.planVelocities(vel,true,true);
-fol = trajectoryFollower(traj);
+fol = trajectoryFollower(traj, true, 6, plotDriving);
 fol.execute(true, true);
+
+robot.encoders.NewMessageFcn=[];
+robot.laser.NewMessageFcn=[];

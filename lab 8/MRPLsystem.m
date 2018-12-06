@@ -33,7 +33,13 @@ classdef MRPLsystem < handle
                 acqPoseVec = robotToPalletFront2;
             end
             
+            if acqPoseVec(1) < 0
+                acqPoseVec(3) = atan2(sin(acqPoseVec(3) + pi), ...
+                    cos(acqPoseVec(3) + pi));
+            end
+            
             if debug
+                scatter([acqPoseVec(1)], [acqPoseVec(2)], 'rx')
                 palletFrontXWorld = robotModel.frontOffset + acqPoseVec(1);
                 palletFrontYWorld = acqPoseVec(2);
                 plot([robotModel.frontOffset palletFrontXWorld] ...

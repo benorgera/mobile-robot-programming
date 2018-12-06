@@ -18,7 +18,7 @@ classdef trapezoidalStepReferenceControl < handle
         function obj = trapezoidalStepReferenceControl ...
                 (amax, vmax, dist, sgn, tPause)
             obj.tramp = vmax / amax;
-            if obj.tramp * vmax > theta
+            if obj.tramp * vmax > dist
                 vmax = dist / obj.tramp;
                 amax = vmax / obj.tramp;
             end

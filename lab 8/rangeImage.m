@@ -1,11 +1,11 @@
 classdef rangeImage < handle
     properties(Constant)
         
-        thOffset = -2; % degrees
-        %atan2(-0.024,0.28); 
+        thOffset = -1; % degrees (-1 for robot 11), (2 for 12)
+        %atan2(-0.024,0.28);
         sailWidth = 0.127; % m
         
-        maxDist = 1.2;
+        maxDist = 1.6;
         minDist = 0.07;
         
         % amount lambda increases by when you add nearest point to cloud
@@ -31,39 +31,58 @@ classdef rangeImage < handle
         
     end
     methods(Access = public)
-        function obj = rangeImage(robot, numImages, cleanFlag)
+        function obj = rangeImage(robot, numImages, cleanFlag, thetaLow, thetaHigh)
             
-            obj.rArray = zeros(1, numImages * 360);
-            obj.tArray = zeros(1, numImages * 360);
-            obj.xArray = zeros(1, numImages * 360);
-            obj.yArray = zeros(1, numImages * 360);
+            numImages = 1;
+
+            if nargin == 5
+                lower = thetaLow - obj.thOffset;
+                upper = thetaHigh - obj.thOffset;
+                disp(lower)
+                disp(upper)
+                if lower > upper
+                    loop = [lower:360, 1:upper];
+                else
+                    loop = lower:upper;
+                end
+            else
+                loop = 1:360;
+            end
             
-            if(nargin == 3)
-                n=0;
-                for j = 1:numImages
-                    ranges = robot.laser.LatestMessage.Ranges;
-                    for i=1:length(ranges)
-                        n = n + 1;
-                        obj.rArray(n) = ranges(i);
-                        obj.tArray(n) = deg2rad(i+obj.thOffset);%mod((i-6),360)*(pi/180);
-                        obj.xArray(n) = ranges(i)*cos(obj.tArray(n));
-                        obj.yArray(n) = ranges(i)*sin(obj.tArray(n));
-                    end
-                    pause(0.2)
+            obj.numPix = length(loop);
+            
+            obj.rArray = zeros(1, obj.numPix);
+            obj.tArray = zeros(1, obj.numPix);
+            obj.xArray = zeros(1, obj.numPix);
+            obj.yArray = zeros(1, obj.numPix);
+            
+            cur = 1;
+            
+            if(nargin >= 3)
+                ranges = robot.laser.LatestMessage.Ranges;
+                for i=loop
+                    obj.rArray(cur) = ranges(i);
+                    obj.tArray(cur) = deg2rad(i+obj.thOffset);%mod((i-6),360)*(pi/180);
+                    obj.xArray(cur) = ranges(i)*cos(obj.tArray(cur));
+                    obj.yArray(cur) = ranges(i)*sin(obj.tArray(cur));
+                    cur = cur + 1;
                 end
-                obj.numPix = n;
-                if cleanFlag
-                    obj.removeBadPoints();
-                end
+            end
+            
+            if cleanFlag
+                obj.removeBadPoints();
             end
         end
     end
     
     methods(Access = public)
         function [centroidX, centroidY, th] = findLineCandidate(obj, debug)
-        % find potential sail in range image, ruling out walls because they
-        % have a nearest point that is too close, or a nearest point which
-        % doesn't change the crosstrack eigenvalue of the point cloud
+            % find potential sail in range image, ruling out walls because they
+            % have a nearest point that is too close, or a nearest point which
+            % doesn't change the crosstrack eigenvalue of the point cloud
+            
+            
+            
             if debug
                 close all
                 figure
@@ -118,9 +137,11 @@ classdef rangeImage < handle
                         
                         closest = ~1;
                         closestInd = ~1;
+                        foundAnother = false;
                         
                         for j = 1:length(obj.rArray)
                             if ~ismember(cloudIndices, j)
+                                foundAnother = true;
                                 xC2 = obj.xArray(j);
                                 yC2 = obj.yArray(j);
                                 dist = ((centroidX-xC2)^2 + ...
@@ -132,38 +153,45 @@ classdef rangeImage < handle
                             end
                         end
                         
-                        pointCloudX(end+1) = obj.xArray(closestInd);
-                        pointCloudY(end+1) = obj.yArray(closestInd);
-                        centroidX1 = mean(pointCloudX);
-                        centroidY1 = mean(pointCloudY);
-                        targetCloudX1 = pointCloudX - centroidX1;
-                        targetCloudY1 = pointCloudY - centroidY1;
-                        Ixx1 = sum(targetCloudX1.^2);
-                        Iyy1 = sum(targetCloudY1.^2);
-                        Ixy1 = sum(-(targetCloudX1.*targetCloudY1));
-                        Inertia1 = [Ixx1 Ixy1;Ixy1 Iyy1] / (pointNum + 1);
-                        lambda1 = eig(Inertia1);
-                        lambda1 = sqrt(lambda1)*1000.0;
+                        if foundAnother
+                            pointCloudX(end+1) = obj.xArray(closestInd);
+                            pointCloudY(end+1) = obj.yArray(closestInd);
+                            centroidX1 = mean(pointCloudX);
+                            centroidY1 = mean(pointCloudY);
+                            targetCloudX1 = pointCloudX - centroidX1;
+                            targetCloudY1 = pointCloudY - centroidY1;
+                            Ixx1 = sum(targetCloudX1.^2);
+                            Iyy1 = sum(targetCloudY1.^2);
+                            Ixy1 = sum(-(targetCloudX1.*targetCloudY1));
+                            Inertia1 = [Ixx1 Ixy1;Ixy1 Iyy1] / (pointNum + 1);
+                            lambda1 = eig(Inertia1);
+                            lambda1 = sqrt(lambda1)*1000.0;
+                            
+                            maxLambdaJump = abs(lambda(1) - lambda1(1));
+                            numSailWidths = closest / obj.sailWidth - 0.5;
+                            
+                        end
                         
-                        maxLambdaJump = abs(lambda(1) - lambda1(1));
-                        numSailWidths = closest / obj.sailWidth - 0.5;
+                        if ~foundAnother
+                            disp("didn;t find another")
+                        end
                         
-                        if numSailWidths > 0.45 || ...
+                        if ~foundAnother || numSailWidths > 0.45 || ...
                                 maxLambdaJump > obj.lambdaJumpThreshold
                             
                             
-                            disp("lambda jump")
-                            disp(maxLambdaJump)
-                            disp("numSailWidths")
-                            disp(numSailWidths)
+                            %                             disp("lambda jump")
+                            %                             disp(maxLambdaJump)
+                            %                             disp("numSailWidths")
+                            %                             disp(numSailWidths)
                             
                             
                             if debug
-%                                 disp(diag);
-%                                 disp("had centroid")
-%                                 disp([centroidX centroidY])
-%                                 disp("with number of points")
-%                                 disp(pointNum)
+                                %                                 disp(diag);
+                                %                                 disp("had centroid")
+                                %                                 disp([centroidX centroidY])
+                                %                                 disp("with number of points")
+                                %                                 disp(pointNum)
                                 
                                 lx = leftX + centroidX;
                                 rx = rightX + centroidX;
@@ -181,7 +209,7 @@ classdef rangeImage < handle
                             disp("nearest point didn't cause lambda jump")
                         end
                     elseif debug
-                        %                         disp("diagonal was off")
+                        %                                                  disp("diagonal was off")
                     end
                 end
                 
@@ -215,8 +243,8 @@ classdef rangeImage < handle
             obj.xArray = obj.xArray(goodOnes);
             obj.yArray = obj.yArray(goodOnes);
             obj.tArray = obj.tArray(goodOnes);
-            obj.indices = linspace(2,obj.numPix,obj.numPix);
-            obj.indices = obj.indices(goodOnes);
+            %             obj.indices = linspace(2,obj.numPix,obj.numPix);
+            %             obj.indices = obj.indices(goodOnes);
         end
     end
     

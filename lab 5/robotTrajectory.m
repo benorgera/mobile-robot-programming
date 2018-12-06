@@ -6,9 +6,18 @@ classdef robotTrajectory < handle
         VArray
         wArray
         tf
+        worldCoords
+        p0
     end
     methods
-        function obj = robotTrajectory(numSamples, s0, p0, ref)
+        function obj = robotTrajectory(numSamples, s0, p0, ref, worldCoords)
+            
+            if (nargin == 5 && worldCoords)
+                global robotPose
+                p0 = robotPose(1:3);
+                obj.worldCoords = true;
+            end
+                  
             %  It generates numSamples samples of the time, distance,
             %  velocities, and poses over the specified time interval.
             %  This is done by integration of the velocity signals
@@ -55,6 +64,7 @@ classdef robotTrajectory < handle
             obj.VArray = VArray;
             obj.wArray = wArray;
             obj.sArr = sArr;
+            obj.p0 = p0;
         end
         function V = getVAtTime(obj, t)
             V = interp1(obj.timeArray, obj.VArray, t);
@@ -67,11 +77,21 @@ classdef robotTrajectory < handle
             tf = obj.tf;
         end
         
-        function pose = getPoseAtTime(obj, t)
+        function poseOut = getPoseAtTime(obj, t)
             x = interp1(obj.timeArray, obj.poseArray(1,:), t);
             y = interp1(obj.timeArray, obj.poseArray(2,:), t);
             th = interp1(obj.timeArray, obj.poseArray(3,:), t);
-            pose = [x ; y ; th];
+            poseRob = [x ; y ; th];
+            
+            if obj.worldCoords
+                th = poseRob(3);
+                poseRobHom = [poseRob(1); poseRob(2); 1];
+                deltaPoseWorld = pose(obj.p0).bToA() * poseRobHom;
+                thWorld = atan2(sin(th + obj.p0(3)), cos(th + obj.p0(3)));
+                poseOut = [deltaPoseWorld(1); deltaPoseWorld(2); thWorld];
+            else
+                poseOut = poseRob;
+            end
         end
     end
 end

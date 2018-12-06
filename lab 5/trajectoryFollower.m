@@ -37,7 +37,12 @@ classdef trajectoryFollower < handle
         end
         
         function execute(obj, initialized, mapPlot)
-            obj.controller.execute(initialized, mapPlot);
+            if nargin == 3
+                obj.controller.execute(initialized, mapPlot);
+            else
+                obj.controller.execute(initialized);
+            end
+            
         end
     end
 end
