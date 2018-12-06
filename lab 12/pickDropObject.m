@@ -1,17 +1,16 @@
-function pickDropObject(robot, vel, thetaLow, thetaHigh)
+function pickDropObject(robot, vel, axisInterval, isX, low, high, altLow)
 global robotPose
 
-if (nargin < 4)
-    thetaLow = 1;
-    thetaHigh = 360;
-end
-
 plotDriving = false;
-softening = 0.6;
+softening = 0.65;
 
 robot.forksDown()
 
-sailPoseRel = findSailRelative(robot, thetaLow, thetaHigh);
+if nargin < 3
+    sailPoseRel = findSailRelative(robot);
+else
+    sailPoseRel = findSailRelative(robot, axisInterval, isX, low, high, altLow);
+end
 
 acqDist = 0.2;
 
@@ -36,12 +35,7 @@ fol.execute(true, true);
 
 pause(0.1);
 
-tol = -0.2;
-thetaWidth = round(.127 / acqDist / 2 * 180 / pi * (1 + tol));
-thetaLow = 360 - thetaWidth;
-
-% pass estimate of where sail is to speed things up
-sailPoseRel2 = findSailRelative(robot, thetaLow, thetaWidth);
+sailPoseRel2 = findSailRelative(robot, axisInterval, isX, low, high, altLow);
 acqPoseVecRel1 = MRPLsystem.acquisitionPose(sailPoseRel2, 0.0, true);
 
 acqPoseVecRel1(2) = acqPoseVecRel1(2) * softening;

@@ -25,14 +25,23 @@ classdef rangeImage < handle
         xArray = [];
         yArray = [];
         numPix=0;
+        indices = [];
+        boundingAxis;
     end
     methods
         
     end
     methods(Access = public)
-        function obj = rangeImage(robot, numImages, cleanFlag)
+        function obj = rangeImage(robot, numImages, cleanFlag, boundingAxis, isX, low, high)
             
             numImages = 1;
+
+            if nargin == 7 && boundingAxis
+                obj.boundingAxis = true;
+               
+            else
+                obj.boundingAxis = false;
+            end
             
             obj.numPix = 360;
             
@@ -41,13 +50,13 @@ classdef rangeImage < handle
             obj.xArray = zeros(1, obj.numPix);
             obj.yArray = zeros(1, obj.numPix);
             
-            ranges = robot.laser.LatestMessage.Ranges;
-            for i=1:360
-                obj.rArray(i) = ranges(i);
-                obj.tArray(i) = deg2rad(i+obj.thOffset);%mod((i-6),360)*(pi/180);
-                obj.xArray(i) = ranges(i)*cos(obj.tArray(i));
-                obj.yArray(i) = ranges(i)*sin(obj.tArray(i));
-            end
+                ranges = robot.laser.LatestMessage.Ranges;
+                for i=1:360
+                    obj.rArray(i) = ranges(i);
+                    obj.tArray(i) = deg2rad(i+obj.thOffset);%mod((i-6),360)*(pi/180);
+                    obj.xArray(i) = ranges(i)*cos(obj.tArray(i));
+                    obj.yArray(i) = ranges(i)*sin(obj.tArray(i));
+                end
             
             if cleanFlag
                 obj.removeBadPoints();
@@ -58,57 +67,46 @@ classdef rangeImage < handle
     
     methods(Access = public)
         function [centroidX, centroidY, th] = findLineCandidate(obj, debug,...
-                axisInterval, isX, low, high, altLow)
+            boundingAxis, isX, low, high)
             % find potential sail in range image, ruling out walls because they
             % have a nearest point that is too close, or a nearest point which
             % doesn't change the crosstrack eigenvalue of the point cloud
             
             
-            if nargin == 7 && axisInterval
+            if nargin == 6 && boundingAxis
                 goodOnes = [];
-                for i=1:obj.numPix
-                    abs = robToWorld([obj.xArray(i); obj.yArray(i); 0]);
-                    if isX
-                        restriction = abs(1);
-                        alt = abs(2);
-                    else
-                        restriction = abs(2);
-                        alt = abs(1);
-                    end
+                for i=1:length(obj.rArray)
+                    inWorld = robToWorld(
                     
-                    if restriction >= low && restriction <= high && alt >= altLow
-                        goodOnes(end+1) = i;
-                    end
                 end
-                xArr = obj.xArray(goodOnes);
-                yArr = obj.yArray(goodOnes);
             else
-                xArr = obj.xArray;
-                yArr = obj.yArray;
+                xArray = obj.xArray;
+                yArray = obj.yArray;
+                rArray = obj.rArray;
             end
-            
+                
             
             if debug
                 close all
                 figure
                 axis([-1.2 1.2 -1.2 1.2]);
                 hold on
-                scatter(xArr, yArr);
+                scatter(xArray, xArray);
             end
             
             candidates = [];
             
-            for i = 1:obj.numPix
+            for i = 1:length(rArray)
                 pointCloudX = [];
                 pointCloudY = [];
-                x = xArr(i);
-                y = yArr(i);
+                x = xArray(i);
+                y = xArray(i);
                 cloudIndices = [];
                 
-                for j = 1:obj.numPix
+                for j = 1:length(rArray)
                     
-                    x2 = xArr(j);
-                    y2 = yArr(j);
+                    x2 = xArray(j);
+                    y2 = xArray(j);
                     dist = ((x-x2)^2 + (y-y2)^2)^0.5;
                     if dist <= obj.sailWidth/2 + obj.widthThreshold
                         % find a included point, do sth
@@ -144,11 +142,11 @@ classdef rangeImage < handle
                         closestInd = ~1;
                         foundAnother = false;
                         
-                        for j = 1:obj.numPix
+                        for j = 1:length(rArray)
                             if ~ismember(cloudIndices, j)
                                 foundAnother = true;
-                                xC2 = xArr(j);
-                                yC2 = yArr(j);
+                                xC2 = xArray(j);
+                                yC2 = xArray(j);
                                 dist = ((centroidX-xC2)^2 + ...
                                     (centroidY-yC2)^2)^0.5;
                                 if closest == ~1 || dist < closest
@@ -159,8 +157,8 @@ classdef rangeImage < handle
                         end
                         
                         if foundAnother
-                            pointCloudX(end+1) = xArr(closestInd);
-                            pointCloudY(end+1) = yArr(closestInd);
+                            pointCloudX(end+1) = xArray(closestInd);
+                            pointCloudY(end+1) = xArray(closestInd);
                             centroidX1 = mean(pointCloudX);
                             centroidY1 = mean(pointCloudY);
                             targetCloudX1 = pointCloudX - centroidX1;
@@ -242,7 +240,7 @@ classdef rangeImage < handle
             num = obj.numPix;
         end
         function removeBadPoints(obj)
-            
+
             goodOnes = obj.rArray > obj.minDist & obj.rArray < obj.maxDist;
             obj.rArray = obj.rArray(goodOnes);
             obj.xArray = obj.xArray(goodOnes);

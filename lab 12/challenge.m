@@ -40,9 +40,6 @@ pause(5)
 vel = 0.15;
 plotDriving = false;
 turnFeedbackTime = 4;
-tol = 1.5;
-sailThetaLow = mod(round((-1/11 - 0.0755 * (1 + tol)) * 180 / pi) + 360, 360);
-sailThetaHigh = mod(round((-1/11 + 0.0755 * (1 + tol)) * 180 / pi) + 360, 360);
 
 th = atan2(sin(pi/2 - robotPose(3)), cos(pi/2 - robotPose(3)));
 ref = linearOrAngularTrajectory.turnRelAngle(th);
@@ -50,8 +47,12 @@ traj = robotTrajectory(201, 0, robotPose(1:3), ref);
 fol = trajectoryFollower(traj, true, turnFeedbackTime, plotDriving);
 fol.execute(true, true)
 
-pickDropObject(robot, vel, sailThetaLow, sailThetaHigh);
+hf = 0.1524;
 
+pickDropObject(robot, vel, true, true, hf, 3*hf, 6*hf);
+
+th = atan2(sin(-pi/2 - robotPose(3)), cos(-pi/2 - robotPose(3)));
+ref = linearOrAngularTrajectory.turnRelAngle(th);
 traj = robotTrajectory(201, 0, robotPose(1:3), ref);
 fol = trajectoryFollower(traj, true, 1.5, plotDriving);
 fol.execute(true, true)
@@ -75,7 +76,7 @@ traj = robotTrajectory(201, 0, robotPose(1:3), ref);
 fol = trajectoryFollower(traj, true, turnFeedbackTime, plotDriving);
 fol.execute(true, true)
 
-pickDropObject(robot, vel, sailThetaLow, sailThetaHigh);
+pickDropObject(robot, vel, true, true, 3*hf, 5*hf, 6*hf);
 
 th = atan2(sin(-pi/2 - robotPose(3)), cos(-pi/2 - robotPose(3)));
 ref = linearOrAngularTrajectory.turnRelAngle(th);
@@ -102,7 +103,7 @@ traj = robotTrajectory(201, 0, robotPose(1:3), ref);
 fol = trajectoryFollower(traj, true, turnFeedbackTime, plotDriving);
 fol.execute(true, true)
 
-pickDropObject(robot, vel, sailThetaLow, sailThetaHigh);
+pickDropObject(robot, vel, true, true, 5*hf, 7*hf, 6*hf);
 
 th = atan2(sin(-pi/2 - robotPose(3)), cos(-pi/2 - robotPose(3)));
 ref = linearOrAngularTrajectory.turnRelAngle(th);
